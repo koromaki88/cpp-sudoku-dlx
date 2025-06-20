@@ -1,13 +1,22 @@
 #ifndef DLX_H
 #define DLX_H
 
+#include <array>
+
 template<int SubGridSize>
+
 class DLX {
 public:
     static const int N = SubGridSize * SubGridSize;
     static const int A = N * N;
     static const int CONSTRAINT_NUM = 4;
     static const int COL_NUM = A * CONSTRAINT_NUM;
+
+    using Board = std::array<std::array<int, N>, N>;
+
+    static Board solve(const Board& puzzle) {
+
+    }
 
 private:
     struct ColumnNode;
@@ -42,11 +51,26 @@ private:
 
         ColumnNode(int n = -1) : DataNode(), size(0), name(n) { this->C = this; }
 
+        // Covers this column and all associated rows from the DLX matrix
         void cover() {
             this->unlinkLR();
+            for (DataNode *i = this->D; i != this; i = i->D) {
+                for (DataNode *j = i->R; j != i; j = j->R) {
+                    j->unlinkUD();
+                    j->C->size--;
+                }
+            }
         };
-        void uncover() {
 
+        // Reinserts all nodes that were removed using cover()
+        void uncover() {
+            for (DataNode *i = this->U; i != this; i = i->U) {
+                for (DataNode *j = i->L; j != i; j = j->L) {
+                    j->C->size++;
+                    j->relinkUD();
+                }
+            }
+            this->relinkLR();
         };
     };
 };
