@@ -2,6 +2,7 @@
 #define DLX_H
 
 #include <array>
+#include <vector>
 
 template<int SubGridSize>
 
@@ -73,6 +74,23 @@ private:
             this->relinkLR();
         };
     };
+
+    // templated static member var
+    inline static std::array<ColumnNode, COL_NUM> columns;
+    inline static ColumnNode header;
+    inline static std::vector<DataNode*> answer;
+    inline static std::vector<DataNode*> node_pool;
+    inline static size_t pool_idx = 0;
+
+    static void initDLX() {
+        header = ColumnNode(-1);
+        ColumnNode *prev = header;
+        for (int i = 0; i < COL_NUM; i++) {
+            columns[i] = ColumnNode(i);
+            prev->linkRight(&columns[i]);
+            prev = &columns[i];
+        }
+    }
 };
 
 #endif
