@@ -2,6 +2,7 @@
 #define DLX_H
 
 #include <array>
+#include <iostream>
 #include <vector>
 
 template<int SubGridSize>
@@ -17,6 +18,24 @@ public:
 
     static Board solve(const Board& puzzle) {
 
+    }
+
+    static void printBoard(const Board& board) {
+        for (int i = 0; i < N; ++i) {
+            if (i % SubGridSize == 0 && i != 0) {
+                for (int k = 0; k < N; ++k) {
+                    std::cout << "---";
+                }
+                std::cout << "\n";
+            }
+            for (int j = 0; j < N; ++j) {
+                if (j % SubGridSize == 0 && j != 0) {
+                    std::cout << "| ";
+                }
+                std::cout << board[i][j] << " ";
+            }
+            std::cout << "\n";
+        }
     }
 
 private:
