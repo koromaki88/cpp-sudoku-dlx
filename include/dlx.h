@@ -2,6 +2,7 @@
 #define DLX_H
 
 #include <array>
+#include <cstddef>
 #include <iostream>
 #include <vector>
 
@@ -109,6 +110,57 @@ private:
             prev->linkRight(&columns[i]);
             prev = &columns[i];
         }
+    }
+
+    static void addKnownConstraint(int row, int col, int num) {
+        // box index 0-8
+        int box = (row/3) * 3 + (col/3);
+
+        // indices for the 4 constraints
+        int cell_constraint = row*9 + col;
+        int row_constraint = 81 + row*9 + num;
+        int col_constraint = 162 + col*9 + num;
+        int box_constraint = 243 + box*9 + num;
+
+        std::array<ColumnNode*, 4> cols = {
+            &columns[cell_constraint], 
+            &columns[row_constraint], 
+            &columns[col_constraint], 
+            &columns[box_constraint]
+        };
+
+        DataNode* row_start = newNode(cols[0]);
+    }
+
+    static void allocateNodes(const Board& puzzle) {
+        int empty_cells = 0;
+        for (int r = 0; r < N; r++) {
+            for (int c = 0; c < N; c++) {
+                if (puzzle[r][c] == 0) empty_cells++;
+            }
+        }
+        int filled_cells = A - empty_cells;
+        int max_nodes = (filled_cells * CONSTRAINT_NUM) + (empty_cells * N * CONSTRAINT_NUM);
+
+        node_pool.resize(max_nodes);
+        for (size_t i = 0; i < max_nodes; i++) {
+            node_pool[i] = new DataNode();
+        }
+        pool_idx = 0;
+    }
+
+    static DataNode* newNode(ColumnNode* c) {
+        DataNode* node = node_pool[pool_idx++];
+        node->C = c;
+        return node;
+    }
+
+    static void cleanup() {
+        for (auto ptr : node_pool) {
+            delete ptr;
+        }
+        node_pool.clear();
+        pool_idx = 0;
     }
 };
 
