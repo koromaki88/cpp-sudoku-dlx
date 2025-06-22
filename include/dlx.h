@@ -22,18 +22,32 @@ public:
     }
 
     static void printBoard(const Board& board) {
+        std::string h_line = "";
+        for (int i = 0; i < SubGridSize; ++i) {
+            h_line += std::string(SubGridSize * 3, '-');
+            if (i < SubGridSize - 1) {
+                h_line += "+";
+            }
+        }
+
         for (int i = 0; i < N; ++i) {
             if (i % SubGridSize == 0 && i != 0) {
-                for (int k = 0; k < N; ++k) {
-                    std::cout << "---";
-                }
-                std::cout << "\n";
+                std::cout << h_line << "\n";
             }
             for (int j = 0; j < N; ++j) {
                 if (j % SubGridSize == 0 && j != 0) {
-                    std::cout << "| ";
+                    std::cout << "|";
                 }
-                std::cout << board[i][j] << " ";
+                
+                if (board[i][j] == 0) {
+                    std::cout << " . ";
+                } else {
+                    if (board[i][j] < 10) {
+                        std::cout << " " << board[i][j] << " ";
+                    } else {
+                        std::cout << board[i][j] << " ";
+                    }
+                }
             }
             std::cout << "\n";
         }
@@ -122,7 +136,7 @@ private:
         int col_constraint = 162 + col*9 + num;
         int box_constraint = 243 + box*9 + num;
 
-        std::array<ColumnNode*, 4> cols = {
+        std::array<ColumnNode*, CONSTRAINT_NUM> cols = {
             &columns[cell_constraint], 
             &columns[row_constraint], 
             &columns[col_constraint], 
@@ -130,6 +144,23 @@ private:
         };
 
         DataNode* row_start = newNode(cols[0]);
+        cols[0]->size++;
+        cols[0]->U->linkDown(row_start);
+
+        DataNode* curr = row_start;
+        for (int i = 1; i < CONSTRAINT_NUM; i++) {
+            DataNode* newNode_ptr = newNode(cols[i]);
+            curr->linkRight(newNode_ptr);
+            cols[i]->size++;
+            cols[i]->U->linkDown(newNode_ptr);
+            curr = newNode_ptr;
+        }
+    }
+
+    static void addUnknownConstraints(int row, int col) {
+        for (int num = 0; num < N; num++) {
+            addKnownConstraint(row, col, num);
+        }
     }
 
     static void allocateNodes(const Board& puzzle) {
