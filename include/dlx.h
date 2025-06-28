@@ -3,7 +3,6 @@
 
 #include <array>
 #include <climits>
-#include <cstddef>
 #include <iostream>
 #include <vector>
 
@@ -19,7 +18,34 @@ public:
     using Board = std::array<std::array<int, N>, N>;
 
     static Board solve(const Board& puzzle) {
+        allocateNodes(puzzle);
+        initDLX();
 
+        for (int r = 0; r < N; ++r) {
+            for (int c = 0; c < N; ++c) {
+                if (puzzle[r][c] != 0) {
+                    addKnownConstraint(r, c, puzzle[r][c] - 1);
+                }
+            }
+        }
+        for (int r = 0; r < N; ++r) {
+            for (int c = 0; c < N; ++c) {
+                if (puzzle[r][c] == 0) {
+                    addUnknownConstraints(r, c);
+                }
+            }
+        }
+
+        answer.clear();
+        if (search(0)) {
+            auto solution = convertSolutionToGrid();
+            cleanup();
+            return solution;
+        }
+
+        cleanup();
+        Board empty_board = {};
+        return empty_board;
     }
 
     static void printBoard(const Board& board) {
@@ -117,11 +143,19 @@ private:
     inline static std::vector<DataNode*> node_pool;
     inline static size_t pool_idx = 0;
 
-    static void initDLX() {
-        header = ColumnNode(-1);
-        ColumnNode *prev = header;
+    static void initDLX() {    
+        header.L = header.R = header.U = header.D = &header;
+        header.C = &header;
+        header.size = 0;
+        header.name = -1;
+
+        ColumnNode *prev = &header;
         for (int i = 0; i < COL_NUM; i++) {
-            columns[i] = ColumnNode(i);
+            columns[i].L = columns[i].R = columns[i].U = columns[i].D = &columns[i];
+            columns[i].C = &columns[i];
+            columns[i].size = 0;
+            columns[i].name = i;
+
             prev->linkRight(&columns[i]);
             prev = &columns[i];
         }
@@ -129,13 +163,13 @@ private:
 
     static void addKnownConstraint(int row, int col, int num) {
         // box index 0-8
-        int box = (row/3) * 3 + (col/3);
+        int box = (row/SubGridSize) * SubGridSize + (col/SubGridSize);
 
         // indices for the 4 constraints
-        int cell_constraint = row*9 + col;
-        int row_constraint = 81 + row*9 + num;
-        int col_constraint = 162 + col*9 + num;
-        int box_constraint = 243 + box*9 + num;
+        int cell_constraint = row*N + col;
+        int row_constraint = A + row*N + num;
+        int col_constraint = A*2 + col*N + num;
+        int box_constraint = A*3 + box*N + num;
 
         std::array<ColumnNode*, CONSTRAINT_NUM> cols = {
             &columns[cell_constraint], 
@@ -173,10 +207,10 @@ private:
         col->cover();
 
         for (DataNode* r = col->D; r != col; r = r->D) {
-            answer.add(r);
+            answer.push_back(r);
 
             for (DataNode* j = r->R; j != r; j = j->R) {
-                j->C.cover();
+                j->C->cover();
             }
 
             if (search(k+1)) {
@@ -194,14 +228,14 @@ private:
 
     static ColumnNode* selectColumn() {
         ColumnNode* selected = nullptr;
-        int minSize = INT_MAX;
+        int min_size = INT_MAX;
 
         for (ColumnNode* col = (ColumnNode*)header.R; col != &header; col = (ColumnNode*)col->R) {
-            if (col->size < minSize) {
-                minSize = col->size;
+            if (col->size < min_size) {
+                min_size = col->size;
                 selected = col;
 
-                if (minSize == 0) {
+                if (min_size == 0) {
                     break;
                 }
             }
@@ -210,6 +244,44 @@ private:
         return selected;
     }
 
+    static Board convertSolutionToGrid() {
+    Board solution = {};
+    for (const auto& start_node : answer) {
+        DataNode* cell_node = nullptr;
+        DataNode* row_node = nullptr;
+
+        DataNode* current_node = start_node;
+        do {
+            int name = current_node->C->name;
+
+            if (name < A) {
+                cell_node = current_node;
+            }
+            else if (name >= A && name < 2 * A) {
+                row_node = current_node;
+            }
+            
+            current_node = current_node->R;
+        } while (current_node != start_node);
+
+        if (cell_node == nullptr || row_node == nullptr) {
+            Board empty_board = {};
+            return empty_board;
+        }
+
+        int cell_constraint = cell_node->C->name;
+        int row = cell_constraint / N;
+        int col = cell_constraint % N;
+
+        int num = (row_node->C->name - A) % N;
+
+        solution[row][col] = num + 1;
+    }
+    return solution;
+    }
+    
+    // memory management w/ area allocation
+    // https://en.wikipedia.org/wiki/Region-based_memory_management
     static void allocateNodes(const Board& puzzle) {
         int empty_cells = 0;
         for (int r = 0; r < N; r++) {
@@ -228,7 +300,11 @@ private:
     }
 
     static DataNode* newNode(ColumnNode* c) {
+        if (pool_idx >= node_pool.size()) {
+            return nullptr;
+        }
         DataNode* node = node_pool[pool_idx++];
+        node->L = node->R = node->U = node->D = node;
         node->C = c;
         return node;
     }

@@ -1,6 +1,8 @@
 #include <dlx.h>
 
+#include <chrono>
 #include <iostream>
+#include <ratio>
 
 int main() {
     const DLX<3>::Board puzzle1 = {{
@@ -36,7 +38,29 @@ int main() {
 
     std::cout << "Original puzzle:\n";
     DLX<3>::printBoard(puzzle1);
+
+    auto start1 = std::chrono::high_resolution_clock::now();
+    auto solution1 = DLX<3>::solve(puzzle1);
+    auto end1 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration1 = end1 - start1;
+
+    std::cout << "Solution:\n";
+    DLX<3>::printBoard(solution1);
+    std::cout << "Time taken: " << duration1.count() << " ms\n";
+    std::cout << "\n" << std::string(30, '=') << "\n\n";
+
+    std::cout << "Original puzzle:\n";
     DLX<4>::printBoard(puzzle2);
+
+    auto start2 = std::chrono::high_resolution_clock::now();
+    auto solution2 = DLX<4>::solve(puzzle2);
+    auto end2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration2 = end2 - start2;
+
+    std::cout << "Solution:\n";
+    DLX<4>::printBoard(solution2);
+    std::cout << "Time taken: " << duration2.count() << " ms\n";
+    std::cout << "\n" << std::string(30, '=') << "\n\n";
 
     return 0;
 }
