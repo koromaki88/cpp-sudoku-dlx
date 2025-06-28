@@ -26,8 +26,7 @@ public:
                 if (puzzle[r][c] != 0) {
                     addKnownConstraint(r, c, puzzle[r][c] - 1);
                 }
-            }
-        }
+            } }
         for (int r = 0; r < N; ++r) {
             for (int c = 0; c < N; ++c) {
                 if (puzzle[r][c] == 0) {
@@ -245,39 +244,30 @@ private:
     }
 
     static Board convertSolutionToGrid() {
-    Board solution = {};
-    for (const auto& start_node : answer) {
-        DataNode* cell_node = nullptr;
-        DataNode* row_node = nullptr;
-
-        DataNode* current_node = start_node;
-        do {
-            int name = current_node->C->name;
-
-            if (name < A) {
-                cell_node = current_node;
-            }
-            else if (name >= A && name < 2 * A) {
-                row_node = current_node;
-            }
+        Board solution = {};
+        for (const auto& start_node : answer) {
+            int row = -1, col = -1, num = -1;
             
-            current_node = current_node->R;
-        } while (current_node != start_node);
-
-        if (cell_node == nullptr || row_node == nullptr) {
-            Board empty_board = {};
-            return empty_board;
+            DataNode* current_node = start_node;
+            do {
+                int name = current_node->C->name;
+                
+                if (name < A) {
+                    row = name / N;
+                    col = name % N;
+                }
+                else if (name < 2 * A) {
+                    num = (name - A) % N;
+                }
+                
+                current_node = current_node->R;
+            } while (current_node != start_node);
+    
+            if (row != -1 && col != -1 && num != -1) {
+                solution[row][col] = num + 1;
+            }
         }
-
-        int cell_constraint = cell_node->C->name;
-        int row = cell_constraint / N;
-        int col = cell_constraint % N;
-
-        int num = (row_node->C->name - A) % N;
-
-        solution[row][col] = num + 1;
-    }
-    return solution;
+        return solution;
     }
     
     // memory management w/ area allocation
