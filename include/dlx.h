@@ -2,6 +2,7 @@
 #define DLX_H
 
 #include <array>
+#include <climits>
 #include <cstddef>
 #include <iostream>
 #include <vector>
@@ -161,6 +162,52 @@ private:
         for (int num = 0; num < N; num++) {
             addKnownConstraint(row, col, num);
         }
+    }
+
+    static bool search(int k) {
+        if (header.R == &header) {
+            return true;
+        }
+
+        ColumnNode* col = selectColumn();
+        col->cover();
+
+        for (DataNode* r = col->D; r != col; r = r->D) {
+            answer.add(r);
+
+            for (DataNode* j = r->R; j != r; j = j->R) {
+                j->C.cover();
+            }
+
+            if (search(k+1)) {
+                return true;
+            }
+            answer.pop_back();
+            for (DataNode* j = r->L; j != r; j = j->L) {
+                j->C->uncover();
+            }
+        }
+
+        col->uncover();
+        return false;
+    }
+
+    static ColumnNode* selectColumn() {
+        ColumnNode* selected = nullptr;
+        int minSize = INT_MAX;
+
+        for (ColumnNode* col = (ColumnNode*)header.R; col != &header; col = (ColumnNode*)col->R) {
+            if (col->size < minSize) {
+                minSize = col->size;
+                selected = col;
+
+                if (minSize == 0) {
+                    break;
+                }
+            }
+        }
+
+        return selected;
     }
 
     static void allocateNodes(const Board& puzzle) {
